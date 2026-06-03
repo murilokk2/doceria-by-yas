@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel - By Yas</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<header>
+    <div class="logo-header">
+        <img src="imagens/logo.jpg" alt="By Yas">
+        <h1>Painel By Yas</h1>
+    </div>
+
+    <nav>
+        <button onclick="sairPainel()" class="btn-sair">Sair</button>
+    </nav>
+</header>
+
+<input type="date" id="dataInicio">
+<input type="date" id="dataFim">
+<button onclick="calcularPeriodo()">Calcular período</button>
+
+<div class="financeiro-card">
+  <h3>💰 Controle financeiro</h3>
+
+  <div class="financeiro-form">
+    <input type="text" id="descricaoGasto" placeholder="Descrição do gasto">
+    <input type="text" id="valorGasto" placeholder="Valor. Ex: 20,50">
+    <button onclick="salvarGasto()">Salvar gasto</button>
+  </div>
+
+  <div class="financeiro-resumo">
+    <p>Faturamento: <strong id="finFaturamento">R$ 0,00</strong></p>
+    <p>Gastos: <strong id="finGastos">R$ 0,00</strong></p>
+    <p>Lucro: <strong id="finLucro">R$ 0,00</strong></p>
+  </div>
+
+  <button onclick="buscarLucroPeriodo()">Calcular lucro</button>
+  <button onclick="zerarGastos()" class="btn-danger">Zerar gastos</button>
+</div>
+
+<section class="painel">
+   <h2>Pedidos Recebidos</h2>
+   <div id="alertaNovoPedido" class="alerta-pedido">
+    🔔 Novo pedido recebido!
+    <button onclick="ativarSom()" class="btn-som">
+    🔊 Ativar som de pedidos
+</button>
+</div>
+<div class="filtros-status">
+    <button onclick="filtrarStatus('Todos')">Todos</button>
+    <button onclick="filtrarStatus('Pendente')">🟡 Pendentes</button>
+    <button onclick="filtrarStatus('Em preparo')">🔵 Em preparo</button>
+    <button onclick="filtrarStatus('Entregue')">🟢 Entregues</button>
+    
+</div>
+
+<div class="dashboard">
+
+    <div class="grafico-box">
+    <h3>📊 Vendas por dia</h3>
+    <div class="filtros-data">
+    <button onclick="filtrarData('todos')">Todas as datas</button>
+    <button onclick="filtrarData('hoje')">Hoje</button>
+    <button onclick="filtrarData('7dias')">Últimos 7 dias</button>
+    <button onclick="filtrarData('mes')">Este mês</button>
+</div>
+
+    <div class="grafico-container">
+        <canvas id="graficoVendas"></canvas>
+    </div>
+</div>
+
+    <div class="dash-card">
+        <h3>📦 Pedidos</h3>
+        <p id="totalPedidos">0</p>
+    </div>
+
+    <div class="dash-card">
+        <h3>💰 Faturamento</h3>
+        <p id="faturamentoTotal">R$ 0,00</p>
+    </div>
+
+    <div class="dash-card">
+        <h3>🟡 Pendentes</h3>
+        <p id="pedidosPendentes">0</p>
+    </div>
+
+    <div class="dash-card">
+        <h3>🔵 Em preparo</h3>
+        <p id="pedidosPreparo">0</p>
+    </div>
+
+    <div class="dash-card">
+        <h3>🟢 Entregues</h3>
+        <p id="pedidosEntregues">0</p>
+    </div>
+
+</div>
+   <input 
+  type="text" 
+  id="pesquisaCliente" 
+  placeholder="🔍 Pesquisar por nome ou telefone..."
+  class="campo-pesquisa"
+>
+
+<button onclick="confirmarExcluirTudo()" class="btn-excluir-tudo">
+    Excluir tudo
+</button>
+
+<button onclick="verArquivados()">Ver arquivados</button>
+<button onclick="carregarPedidos()">Ver ativos</button>
+
+<button onclick="fazerBackup()">💾 Fazer Backup</button>
+
+<div id="listaPedidos"></div>
+
+</section>
+
+<script>
+    async function verificarLogin() {
+  try {
+    const resposta = await fetch("/verificar-login", {
+      credentials: "include"
+    });
+
+    const dados = await resposta.json();
+
+    if (!dados.logado) {
+      window.location.href = "login.html";
+    }
+  } catch (erro) {
+    console.log("Erro ao verificar login:", erro);
+    window.location.href = "login.html";
+  }
+}
+
+verificarLogin();
+
+
+let todosPedidos = [];
+
+async function carregarPedidos(pedidosFiltrados = null){
+    const resposta = await fetch("/encomendas");
+    const pedidos = await resposta.json();
+    let pedidosParaMostrar = pedidosFiltrados || pedidos;
+    todosPedidos = pedidos;
+   mostrarPedidos(pedidosParaMostrar);
+atualizarDashboard(pedidosParaMostrar);
+atualizarGrafico(pedidosParaMostrar);
+return;
+  
+}
+
+let tituloOriginal = document.title;
+let intervaloTitulo;
+
+function iniciarPiscarTitulo(){
+    clearInterval(intervaloTitulo);
+
+    intervaloTitulo = setInterval(() => {
+        document.title =
+            document.title === "🔔 NOVO PEDIDO!"
+                ? tituloOriginal
+                : "🔔 NOVO PEDIDO!";
+    }, 1000);
+}
+
+function pararPiscarTitulo(){
+    clearInterval(intervaloTitulo);
+    document.title = tituloOriginal;
+}
+
+async function carregarPedidos(pedidosFiltrados = null) {
+  try {
+    const resposta = await fetch("/encomendas");
+    const pedidos = await resposta.json();
+
+    console.log("PEDIDOS DO PAINEL:", pedidos);
+
+    const pedidosParaMostrar = pedidosFiltrados || pedidos;
+    todosPedidos = pedidos;
+
+    mostrarPedidos(pedidosParaMostrar);
+    atualizarDashboard(pedidosParaMostrar);
+    atualizarGrafico(pedidosParaMostrar);
+  } catch (erro) {
+    console.log("Erro ao carregar pedidos:", erro);
+  }
+}
+
+document.getElementById("pesquisaCliente").addEventListener("input", function(){
+
+    const texto = this.value.toLowerCase();
+
+    const cards = document.querySelectorAll(".pedido-card");
+
+    cards.forEach(card => {
+
+        const conteudo = card.innerText.toLowerCase();
+
+        if(conteudo.includes(texto)){
+            card.style.display = "block";
+        } else {
+            card.style.display = "none";
+        }
+
+    });
+
+});
+
+function mostrarPedidos(pedidos) {
+  const lista = document.getElementById("listaPedidos");
+  lista.innerHTML = "";
+
+  console.log(pedidos);
+
+  pedidos.forEach(pedido => {
+    lista.innerHTML += `
+<div class="pedido-card" data-status="${pedido.status || 'Pendente'}">
+    <h3>👤 ${pedido.nome}</h3>
+
+    <p><strong>📞 Telefone:</strong> ${pedido.telefone}</p>
+
+    <p><strong>🍰 Produtos:</strong><br>
+    ${pedido.produto}</p>
+
+    <p><strong>💰 Pagamento:</strong> ${pedido.pagamento}</p>
+
+    <p><strong>🚚 Recebimento:</strong> ${pedido.entrega}</p>
+
+    <p><strong>💵 Total:</strong> ${pedido.total}</p>
+
+    <p><strong>🕒 Pedido feito em:</strong> ${formatarData(pedido.criado_em)}</p>
+
+    <p><strong>📝 Observação:</strong> ${pedido.observacao || "Nenhuma"}</p>
+
+    <div class="acoes-card">
+  <p><strong>Status:</strong>
+<span class="status ${pedido.status || 'Pendente'}">
+    ${pedido.status || 'Pendente'}
+</span>
+</p>
+
+<button onclick="alterarStatus(${pedido.id}, 'Pendente')" class="pendente">
+    Pendente
+</button>
+
+<button onclick="alterarStatus(${pedido.id}, 'Em preparo')" class="preparo">
+    Em preparo
+</button>
+
+<button onclick="alterarStatus(${pedido.id}, 'Entregue')" class="entregue">
+    Entregue
+</button>
+
+<button onclick="excluirPedido(${pedido.id})" class="btn-excluir">
+    Excluir
+</button>
+<button
+ 
+onclick="abrirWhatsApp('${pedido.telefone}', '${pedido.nome}')"
+class="btn-whatsapp">
+WhatsApp
+    
+<button onclick="arquivarPedido(${pedido.id})">Arquivar</button>
+
+
+</button>
+</div>
+</div>
+
+
+        `;
+    });
+}
+
+async function confirmarExcluirTudo() {
+  if (!(await confirmarAcao("Confirmar exclusão de todos os pedidos?"))) return;
+
+  fetch("/excluir-todos", {
+    method: "DELETE"
+  })
+  .then(() => carregarPedidos());
+}
+
+async function excluirPedido(id) {
+  if (!(await confirmarAcao("Deseja excluir este pedido?"))) return;
+
+  fetch(`/excluir-pedido/${id}`, {
+    method: "DELETE"
+  })
+  .then(() => location.reload());
+}
+
+async function alterarStatus(id, status){
+    await fetch(`/status/${id}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ status })
+    });
+
+    carregarPedidos();
+}
+
+function formatarData(data){
+    if(!data) return "Sem data";
+
+    const d = new Date(data);
+
+    d.setHours(d.getHours() - 3);
+
+    return d.toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
+
+document.getElementById("pesquisaCliente").addEventListener("input", function(){
+    const texto = this.value.toLowerCase();
+
+    const filtrados = todosPedidos.filter(pedido =>
+        pedido.nome.toLowerCase().includes(texto) ||
+        pedido.telefone.includes(texto)
+    );
+
+    mostrarPedidos(filtrados);
+});
+
+function atualizarDashboard(pedidos){
+    atualizarGrafico(pedidos);
+    const totalPedidos = pedidos.length;
+
+    const pedidosEntregues = pedidos.filter(pedido => pedido.status === "Entregue");
+    const pendentes = pedidos.filter(pedido => pedido.status === "Pendente").length;
+    const preparo = pedidos.filter(pedido => pedido.status === "Em preparo").length;
+
+    const faturamento = pedidosEntregues.reduce((soma, pedido) => {
+        const valor = Number(
+            String(pedido.total)
+                .replace("💖 Total: R$", "")
+                .replace("Total: R$", "")
+                .replace("R$", "")
+                .replace(",", ".")
+                .trim()
+        );
+
+        return soma + (isNaN(valor) ? 0 : valor);
+    }, 0);
+
+    document.getElementById("totalPedidos").innerText = totalPedidos;
+   buscarFaturamentoPeriodo();
+    document.getElementById("faturamentoTotal").innerText =
+  `R$ ${valor.toFixed(2).replace(".", ",")}`;
+    document.getElementById("pedidosEntregues").innerText = pedidosEntregues.length;
+    document.getElementById("pedidosPendentes").innerText = pendentes;
+    document.getElementById("pedidosPreparo").innerText = preparo;
+}
+
+function abrirWhatsApp(telefone, nome) {
+    const numero = telefone.replace(/\D/g, '');
+
+    const mensagem =
+        `Olá ${nome}! 😊 Seu pedido na By Yas está sendo preparado.`;
+
+    window.open(
+        `https://wa.me/55${numero}?text=${encodeURIComponent(mensagem)}`,
+        "_blank"
+    );
+}
+
+function filtrarStatus(status){
+    const cards = document.querySelectorAll(".pedido-card");
+
+    cards.forEach(card => {
+        if(status === "Todos"){
+            card.style.display = "block";
+            return;
+        }
+
+        if(card.dataset.status === status){
+            card.style.display = "block";
+        } else {
+            card.style.display = "none";
+        }
+    });
+}
+
+let quantidadePedidosAnterior = 0;
+let primeiraVez = true;
+
+function tocarSomPedido(){
+    if(!somAtivado) return;
+
+    const audio = new Audio("/sons/novo-pedido.mp3");
+
+    audio.volume = 1.0;
+    audio.play();
+}
+
+function mostrarAlertaPedido(){
+    const alerta = document.getElementById("alertaNovoPedido");
+
+    alerta.style.display = "block";
+
+    setTimeout(() => {
+        alerta.style.display = "none";
+    }, 4000);
+}
+
+setInterval(async () => {
+    const resposta = await fetch("/encomendas");
+    const pedidos = await resposta.json();
+
+    if(primeiraVez){
+        quantidadePedidosAnterior = pedidos.length;
+        primeiraVez = false;
+        return;
+    }
+
+    if(pedidos.length > quantidadePedidosAnterior){
+        tocarSomPedido();
+        mostrarAlertaPedido();
+         iniciarPiscarTitulo();
+        carregarPedidos();
+        
+       
+    }
+
+    quantidadePedidosAnterior = pedidos.length;
+
+}, 5000);
+
+let somAtivado = localStorage.getItem("somAtivado") === "true";
+
+function ativarSom(){
+    somAtivado = true;
+
+    localStorage.setItem("somAtivado", "true");
+
+    const audio = new Audio("/sons/novo-pedido.mp3");
+    audio.volume = 1.0;
+    audio.play();
+
+    alert("Som ativado com sucesso!");
+}
+
+document.addEventListener("click", pararPiscarTitulo);
+
+function sairPainel(){
+    document.getElementById("modalSair").style.display = "flex";
+}
+
+function fecharModalSair(){
+    document.getElementById("modalSair").style.display = "none";
+}
+
+function confirmarSaida(){
+    localStorage.removeItem("logadoPainel");
+    window.location.href = "login.html";
+}
+
+let graficoVendas = null;
+
+function atualizarGrafico(pedidos){
+    const vendasPorDia = {};
+
+    pedidos.forEach(pedido => {
+        const data = new Date(pedido.criado_em);
+        data.setHours(data.getHours() - 3);
+
+        const dia = data.toLocaleDateString("pt-BR");
+
+        if(!vendasPorDia[dia]){
+            vendasPorDia[dia] = 0;
+        }
+
+        vendasPorDia[dia]++;
+    });
+
+    const labels = Object.keys(vendasPorDia);
+    const valores = Object.values(vendasPorDia);
+
+    const ctx = document.getElementById("graficoVendas");
+
+    if(graficoVendas){
+        graficoVendas.destroy();
+    }
+
+    graficoVendas = new Chart(ctx, {
+        type: "line",
+
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Pedidos",
+                data: valores,
+                borderColor: "#ff6f9f",
+                backgroundColor: "rgba(255,111,159,0.15)",
+                fill: true,
+                tension: 0.4
+            }]
+        },
+
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+}
+
+function filtrarData(tipo){
+    let pedidosFiltrados = [...todosPedidos];
+
+    const agora = new Date();
+
+    pedidosFiltrados = pedidosFiltrados.filter(pedido => {
+        const dataPedido = new Date(pedido.criado_em);
+        dataPedido.setHours(dataPedido.getHours() - 3);
+
+        if(tipo === "todos"){
+            return true;
+        }
+
+        if(tipo === "hoje"){
+            return dataPedido.toDateString() === agora.toDateString();
+        }
+
+        if(tipo === "7dias"){
+            const seteDiasAtras = new Date();
+            seteDiasAtras.setDate(agora.getDate() - 7);
+
+            return dataPedido >= seteDiasAtras && dataPedido <= agora;
+        }
+
+        if(tipo === "mes"){
+            return (
+                dataPedido.getMonth() === agora.getMonth() &&
+                dataPedido.getFullYear() === agora.getFullYear()
+            );
+        }
+    });
+
+    carregarPedidos(pedidosFiltrados);
+    atualizarDashboard(pedidosFiltrados);
+    atualizarGrafico(pedidosFiltrados);
+}
+
+async function buscarFaturamentoPeriodo() {
+  let inicio = document.getElementById("dataInicio")?.value;
+  let fim = document.getElementById("dataFim")?.value;
+
+  if (!inicio || !fim) {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, "0");
+
+    inicio = `${ano}-${mes}-01`;
+    fim = `${ano}-${mes}-31`;
+  }
+
+  const resposta = await fetch(`/api/faturamento-periodo?inicio=${inicio}&fim=${fim}`);
+  const dados = await resposta.json();
+
+  const valor = Number(dados.faturamento || 0);
+
+  document.getElementById("faturamentoTotal").innerText =
+    `R$ ${valor.toFixed(2).replace(".", ",")}`;
+
+  document.getElementById("finFaturamento").innerText =
+    `R$ ${valor.toFixed(2).replace(".", ",")}`;
+}
+
+async function salvarGasto() {
+  const descricao = document.getElementById("descricaoGasto").value;
+  const valor = document.getElementById("valorGasto").value;
+
+  await fetch('/gastos', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ descricao, valor })
+  });
+
+ await confirmarAcao("Gasto salvo!");
+}
+
+async function buscarLucroPeriodo() {
+  const inicio = document.getElementById("dataInicio").value;
+  const fim = document.getElementById("dataFim").value;
+
+  const resposta = await fetch(`/api/lucro-periodo?inicio=${inicio}&fim=${fim}`);
+  const dados = await resposta.json();
+
+  document.getElementById("finFaturamento").innerText =
+    `R$ ${Number(dados.faturamento).toFixed(2).replace(".", ",")}`;
+
+  document.getElementById("finGastos").innerText =
+    `R$ ${Number(dados.gastos).toFixed(2).replace(".", ",")}`;
+
+  document.getElementById("finLucro").innerText =
+    `R$ ${Number(dados.lucro).toFixed(2).replace(".", ",")}`;
+}
+
+async function zerarGastos() {
+  if (!await confirmarAcao("Tem certeza que deseja zerar todos os gastos?")) {
+    return;
+  }
+
+  const resposta = await fetch('/gastos', {
+    method: 'DELETE'
+  });
+
+  const dados = await resposta.json();
+  console.log(dados);
+
+  if (dados.sucesso) {
+   
+
+    document.getElementById("finGastos").innerText = "R$ 0,00";
+    document.getElementById("finLucro").innerText = "R$ 48,00";
+
+    buscarLucroPeriodo();
+  } else {
+    alert("Erro ao zerar gastos");
+  }
+}
+
+async function arquivarPedido(id) {
+  const resposta = await fetch(`/arquivar/${id}`, {
+    method: "PUT"
+  });
+
+  const dados = await resposta.json();
+  console.log(dados);
+
+  location.reload();
+}
+
+async function verArquivados() {
+  const resposta = await fetch("/arquivados");
+  const pedidos = await resposta.json();
+
+  mostrarPedidos(pedidos);
+  atualizarDashboard(pedidos);
+  atualizarGrafico(pedidos);
+}
+
+function fazerBackup() {
+    window.open("/backup", "_blank");
+}
+
+async function sair() {
+  await fetch("/logout", {
+    method: "POST"
+  });
+
+  window.location.href = "login.html";
+}
+
+window.addEventListener("load", () => {
+  carregarPedidos();
+  buscarFaturamentoPeriodo();
+  buscarLucroPeriodo();
+});
+
+function confirmarAcao(mensagem) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById("modalConfirmacao");
+    const texto = document.getElementById("modalMensagem");
+    const confirmar = document.getElementById("btnConfirmarModal");
+    const cancelar = document.getElementById("btnCancelarModal");
+
+    texto.innerText = mensagem;
+    modal.style.display = "flex";
+
+    confirmar.onclick = () => {
+      modal.style.display = "none";
+      resolve(true);
+    };
+
+    cancelar.onclick = () => {
+      modal.style.display = "none";
+      resolve(false);
+    };
+  });
+}
+
+async function calcularPeriodo() {
+  await buscarFaturamentoPeriodo();
+  await buscarLucroPeriodo();
+}
+
+</script>
+
+<div id="modalSair" class="modal-sair">
+    <div class="modal-conteudo">
+
+        <div class="icone-sair">🚪</div>
+
+        <h2>Sair do painel?</h2>
+
+        <p>Tem certeza que deseja sair do painel?</p>
+
+        <div class="botoes-modal">
+
+            <button class="btn-cancelar"
+                onclick="fecharModalSair()">
+                Cancelar
+            </button>
+
+            <button class="btn-confirmar"
+                onclick="confirmarSaida()">
+                Sim, sair
+            </button>
+
+        </div>
+
+    </div>
+</div>
+
+<div id="modalConfirmacao" class="modal-custom">
+  <div class="modal-caixa">
+    <h3 id="modalTitulo">Confirmar ação</h3>
+    <p id="modalMensagem">Tem certeza?</p>
+
+    <div class="modal-botoes">
+      <button id="btnCancelarModal" class="btn-cancelar">Cancelar</button>
+      <button id="btnConfirmarModal" class="btn-confirmar">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

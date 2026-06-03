@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>By Yas</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/jpg" href="imagens/logo.jpg">
+</head>
+
+<body>
+
+<header>
+    <div class="logo-header">
+    <img src="imagens/logo.jpg" alt="By Yas">
+    <h1>By Yas</h1>
+</div>
+    <nav>
+        <a href="index.html">Início</a>
+        <a href="cardapio.html">Cardápio</a>
+        <a href="encomenda.html">Encomendar</a>
+       <a href="https://wa.me/5511988182816?text=Olá!%20🍰%20Tenho%20interesse%20em%20fazer%20uma%20encomenda.%20Poderia%20me%20enviar%20as%20opções%20disponíveis?"
+   target="_blank">
+   WhatsApp
+</a>
+</a>
+    </nav>
+</header>
+
+<section class="hero">
+    <div class="hero-texto">
+        <img src="imagens/logo.jpg" class="logo-home">
+
+        <h2>Doces feitos com amor 💕</h2>
+
+        <p>Bolos de pote, copos da felicidade e sobremesas incríveis.</p>
+
+        <a href="encomenda.html" class="btn">Fazer Encomenda</a>
+    </div>
+
+    <img src="imagens/encomendas.jpg" class="banner" class="encomenda-img"
+     onclick="abrirCardapio(this)">
+</section>
+
+
+<footer>
+    <p>By Yas 💕</p>
+    <p>Doces feitos com amor</p>
+    <p>WhatsApp: (11) 98818-2816</p>
+</footer>
+
+
+<a href="https://instagram.com/docesbyyas_"
+   class="btn-instagram"
+   target="_blank">
+   Instagram
+</a>
+<a class="whats-fixo" href="https://wa.me/5511988182816?text=Olá!%20🍰%20Tenho%20interesse%20em%20fazer%20uma%20encomenda.%20Poderia%20me%20enviar%20as%20opções%20disponíveis?"
+   target="_blank">
+WhatsApp
+</a>
+
+<div id="modalCardapio" class="modal-cardapio">
+    <span class="fechar" onclick="fecharCardapio()">&times;</span>
+
+    <img id="imgExpandida">
+</div>
+
+<script>
+function abrirCardapio(img){
+    document.getElementById("modalCardapio").style.display = "flex";
+    document.getElementById("imgExpandida").src = img.src;
+}
+
+function fecharCardapio(){
+    document.getElementById("modalCardapio").style.display = "none";
+}
+</script>
+
+
+</body>
+</html>

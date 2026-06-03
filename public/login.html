@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Painel By Yas</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<section class="login-area">
+    <div class="login-box">
+        <img src="imagens/logo.jpg" alt="By Yas" class="login-logo">
+
+        <h2>Entrar no Painel</h2>
+
+        <input type="text" id="usuario" placeholder="Usuário">
+        <input type="password" id="senha" placeholder="Senha">
+
+        <button onclick="entrarPainel()">Entrar</button>
+
+        <p id="erroLogin"></p>
+    </div>
+</section>
+
+<script>
+async function entrarPainel() {
+  const usuario = document.getElementById("usuario").value;
+  const senha = document.getElementById("senha").value;
+
+  const resposta = await fetch("/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ usuario, senha })
+  });
+
+  const dados = await resposta.json();
+
+  if (dados.sucesso) {
+    window.location.href = "painel.html";
+  } else {
+    document.getElementById("erroLogin").innerText =
+  dados.erro || "Usuário ou senha incorretos.";
+  }
+}
+</script>
+
+</body>
+</html>
