@@ -57,6 +57,25 @@ CREATE TABLE IF NOT EXISTS encomendas (
 )
 `);
 
+async function enviarTelegram(mensagem) {
+  if (!process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID) return;
+
+  try {
+    await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        chat_id: process.env.TELEGRAM_CHAT_ID,
+        text: mensagem
+      })
+    });
+  } catch (erro) {
+    console.log("Erro ao enviar Telegram:", erro.message);
+  }
+}
+
 app.post("/encomendar", (req, res) => {
     console.log("PEDIDO RECEBIDO:", req.body);
    const { nome, telefone, pagamento, entrega, endereco, produto, quantidade, total, observacao } = req.body;
@@ -89,7 +108,19 @@ if (!total || total.length > 50) {
     return res.status(500).json({ sucesso:false });
 }
 
-            res.json({ sucesso:true });
+enviarTelegram(
+`🧁 Novo pedido By Yas!
+
+👤 Cliente: ${nome}
+📞 Telefone: ${telefone}
+🛍 Produto: ${produto}
+💳 Pagamento: ${pagamento}
+🚚 Entrega: ${entrega}
+💰 ${total}
+📝 Observação: ${observacao || "Nenhuma"}`
+);
+
+res.json({ sucesso:true });
         }
     );
 });
