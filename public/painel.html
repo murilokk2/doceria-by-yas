@@ -359,7 +359,7 @@ function atualizarDashboard(pedidos){
     document.getElementById("totalPedidos").innerText = totalPedidos;
    buscarFaturamentoPeriodo();
     document.getElementById("faturamentoTotal").innerText =
-  `R$ ${valor.toFixed(2).replace(".", ",")}`;
+  `R$ ${faturamento.toFixed(2).replace(".", ",")}`;
     document.getElementById("pedidosEntregues").innerText = pedidosEntregues.length;
     document.getElementById("pedidosPendentes").innerText = pendentes;
     document.getElementById("pedidosPreparo").innerText = preparo;
