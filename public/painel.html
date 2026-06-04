@@ -589,13 +589,14 @@ async function salvarGasto() {
   const descricao = document.getElementById("descricaoGasto").value;
   const valor = document.getElementById("valorGasto").value;
 
-  await fetch('/gastos', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ descricao, valor })
-  });
+  await fetch("/gastos", {
+  method: "POST",
+  credentials: "include",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({ descricao, valor })
+});
 
  await confirmarAcao("Gasto salvo!");
 }
