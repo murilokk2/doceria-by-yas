@@ -256,7 +256,7 @@ app.get("/api/lucro-periodo", (req, res) => {
 });
 
 
-app.post("/gastos", verificarAuth, (req, res) => {
+app.post("/gastos", (req, res) => {
   const { descricao, valor } = req.body;
 
   db.run(
@@ -272,7 +272,7 @@ app.post("/gastos", verificarAuth, (req, res) => {
   );
 });
 
-app.delete("/gastos", verificarAuth, (req, res) => {
+app.delete("/gastos", (req, res) => {
   db.run(`DELETE FROM gastos`, [], function(err) {
     if (err) {
       return res.status(500).json({ sucesso: false, erro: err.message });
